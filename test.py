@@ -57,7 +57,7 @@ def thread_print():
 global_queue = []
 mutex = threading.Lock()
 t = threading.Thread(target=thread_print, args=())
-# t.start()
+t.start()
 for ptime,pdata in pc:
     mutex.acquire()
     global_queue.append(pdata)
