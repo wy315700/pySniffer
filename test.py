@@ -25,7 +25,6 @@ def thread_print():
             # 取得锁
             mutex.acquire()
             if len(global_queue) > 0 :
-                print 'queue len is:',len(global_queue)
                 pdata = global_queue.pop()
             else :
                 mutex.release()
@@ -51,13 +50,14 @@ def thread_print():
                     print "Source Port is:",tem.data.data.sport
                     print "Content Data is:",tem.data.data.data
             print '\n'*3
+            time.sleep(0.01)
     except KeyboardInterrupt:
         return
 
 global_queue = []
 mutex = threading.Lock()
 t = threading.Thread(target=thread_print, args=())
-t.start()
+# t.start()
 for ptime,pdata in pc:
     mutex.acquire()
     global_queue.append(pdata)
