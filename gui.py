@@ -141,25 +141,52 @@ class DemoFrame(wx.Frame):
         
         self.rootPanel = wx.Panel(self)
         self.drawList(self.rootPanel);
-        self.tree = wx.TreeCtrl(self.rootPanel)
+        self.tree = wx.TreeCtrl(self.rootPanel , size = (-1,100))
         self.drawTextCtrl(self.rootPanel)
-        font = self.textCtrl.GetFont()
-        print font.GetFaceName()
-        font1 = wx.Font(9, wx.MODERN, wx.NORMAL, wx.NORMAL, False, u'Consolas')
-        self.textCtrl.SetFont(font1) #使用等宽字体
+        
 
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         vbox.Add(self.list, 1, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 10)
         vbox.Add(self.tree, 0, wx.EXPAND | wx.ALL ^wx.TOP | wx.ALIGN_TOP, 10)
-        vbox.Add(self.textCtrl, 0, wx.EXPAND | wx.ALL ^wx.TOP | wx.ALIGN_TOP, 10)
+
+        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
+
+        hbox1.Add(self.textCtrlForRawData, 2, wx.EXPAND | wx.ALL ^wx.RIGHT | wx.ALIGN_LEFT, 0)
+
+        hbox1.Add(self.textCtrlForCharData, 1, wx.EXPAND | wx.ALL ^wx.LEFT | wx.ALIGN_LEFT, 0)
+
+        vbox.Add(hbox1, 0, wx.EXPAND | wx.ALL ^wx.TOP | wx.ALIGN_TOP, 10)
         self.rootPanel.SetSizer(vbox)
         
     def drawTextCtrl(self,panel):
-        self.textCtrl = wx.TextCtrl(panel, -1, "I've entered some text!",size=(-1, 100),style = wx.TE_READONLY | wx.TE_MULTILINE)
+        self.textCtrlForRawData = wx.TextCtrl(panel, -1, "I've entered some text!",size=(-1, 100),style = wx.TE_READONLY | wx.TE_MULTILINE)
+        self.textCtrlForCharData = wx.TextCtrl(panel, -1, "I've entered some text else!",size=(-1, 100),style = wx.TE_READONLY | wx.TE_MULTILINE)
+
+        font = self.textCtrlForRawData.GetFont()
+        print font.GetFaceName()
+        font1 = wx.Font(9, wx.MODERN, wx.NORMAL, wx.NORMAL, False, u'Consolas')
+        self.textCtrlForRawData.SetFont(font1) #使用等宽字体
+        self.textCtrlForCharData.SetFont(font1) #使用等宽字体
     
+    def writeCharData(self,data):
+        self.textCtrlForCharData.Clear()
+        length = len(data)
+        current = 0 
+        colunm  = 0
+        row     = 0  
+        charsinline = 20
+        while current < length:
+            remain = length - current
+            charsThisLine = charsinline if remain >= charsinline else remain
+            
+            chars = charPrint(struct.unpack(`charsThisLine`+'s', data[current:current + charsThisLine])[0])
+            self.textCtrlForCharData.AppendText(chars)
+            self.textCtrlForCharData.AppendText('\n')
+            current = current + charsinline
+        self.textCtrlForCharData.SetSelection(1,20)
     def writeRawData(self,data):
-        self.textCtrl.Clear()
+        self.textCtrlForRawData.Clear()
         # self.textCtrl.AppendText(charPrint(data).decode('utf-8') )
 
         lenth = len(data)
@@ -168,12 +195,12 @@ class DemoFrame(wx.Frame):
         row     = 0  
 
         while current < lenth:
-            self.textCtrl.AppendText( hexPrint(struct.unpack('B', data[current])[0] ).decode('utf-8') )
+            self.textCtrlForRawData.AppendText( hexPrint(struct.unpack('B', data[current])[0] ).decode('utf-8') )
             current = current+1
             colunm = colunm+1
-            if colunm == 32:
-                self.textCtrl.AppendText('\n')
-                # charPrint(struct.unpack('16s', data[current - 16:current])[0])
+            if colunm == 20:
+                self.textCtrlForRawData.AppendText('\n')
+
                 colunm = 0
                 row = row + 1
 
@@ -185,6 +212,7 @@ class DemoFrame(wx.Frame):
         tem = self.temList[index]
 
         self.writeRawData(tem.pack())
+        self.writeCharData(tem.pack())
 
         childId1 = self.tree.AppendItem(self.root, u"链路层数据")
         self.tree.AppendItem(childId1, u"源MAC地址： " + self.listData[index][2])
