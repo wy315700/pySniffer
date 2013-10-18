@@ -145,6 +145,7 @@ class DemoFrame(wx.Frame):
         childId1 = self.tree.AppendItem(self.root, u"链路层数据")
         self.tree.AppendItem(childId1, u"源MAC地址： " + self.listData[index][2])
         self.tree.AppendItem(childId1, u"目标MAC地址： " + self.listData[index][3])
+        self.tree.AppendItem(childId1, u"数据类型： " + tem.data.__class__.__name__)
         childId2 = self.tree.AppendItem(self.root, u"网络层数据")
         childId3 = self.tree.AppendItem(self.root, u"应用层数据")
         pass
