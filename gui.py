@@ -137,7 +137,7 @@ class DemoFrame(wx.Frame):
     def drawTextCtrl(self,panel):
         self.textCtrl = wx.TextCtrl(panel, -1, "I've entered some text!",size=(-1, 100),style = wx.TE_READONLY)
     def drawTreeCtrl(self,index):
-        index = int(index) - 1
+        index = int(index)
 
         self.tree.DeleteAllItems()
         self.root = self.tree.AddRoot(u"第"+`index`+u"个数据包")
@@ -152,13 +152,13 @@ class DemoFrame(wx.Frame):
 
         self.list = VirtualListCtrl(panel,self.listData)
     def addItem(self, itemList, tem):
-        self.num += 1
         # index = self.list.InsertStringItem(sys.maxint, `self.num`)
         # for col in range(0,len(itemList)):
         #     self.list.SetStringItem(index, col + 1, itemList[col])
 
         # self.list.ScrollList(0, index)
         itemList.insert(0, `self.num`)
+        self.num += 1
         self.listData.append(itemList)
         self.temList.append(tem)
         self.list.refresh()
