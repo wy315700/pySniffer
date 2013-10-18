@@ -10,12 +10,28 @@ import win_inet_pton
 import string, threading, time
 import sys, glob, random
 import multiprocessing, pickle
+import re
+import struct
 
 def time2stamp(timestr, format_type='%Y-%m-%d %H:%M:%S'):
     return time.mktime(time.strptime(timestr, format_type))
 
 def stamp2time(stamp, format_type='%Y-%m-%d %H:%M:%S'):
     return time.strftime(format_type, time.localtime(stamp))
+
+def hexPrint(data):
+    if data < 16:
+        return "0%X "%data
+        pass
+    else:
+        return "%X "%data
+
+def charPrint(data):
+    length = len(data)
+
+    data = re.sub("[\x00-\x1f|\x7f-\xff]+",".",data)
+
+    return data
 # class ListBoxFrame(wx.Frame):
 #     def __init__(self):
 #         wx.Frame.__init__(self, None, -1, 'List Box Example', 
@@ -127,6 +143,11 @@ class DemoFrame(wx.Frame):
         self.drawList(self.rootPanel);
         self.tree = wx.TreeCtrl(self.rootPanel)
         self.drawTextCtrl(self.rootPanel)
+        font = self.textCtrl.GetFont()
+        print font.GetFaceName()
+        font1 = wx.Font(9, wx.MODERN, wx.NORMAL, wx.NORMAL, False, u'Consolas')
+        self.textCtrl.SetFont(font1) #使用等宽字体
+
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         vbox.Add(self.list, 1, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 10)
@@ -135,13 +156,36 @@ class DemoFrame(wx.Frame):
         self.rootPanel.SetSizer(vbox)
         
     def drawTextCtrl(self,panel):
-        self.textCtrl = wx.TextCtrl(panel, -1, "I've entered some text!",size=(-1, 100),style = wx.TE_READONLY)
+        self.textCtrl = wx.TextCtrl(panel, -1, "I've entered some text!",size=(-1, 100),style = wx.TE_READONLY | wx.TE_MULTILINE)
+    
+    def writeRawData(self,data):
+        self.textCtrl.Clear()
+        # self.textCtrl.AppendText(charPrint(data).decode('utf-8') )
+
+        lenth = len(data)
+        current = 0 
+        colunm  = 0
+        row     = 0  
+
+        while current < lenth:
+            self.textCtrl.AppendText( hexPrint(struct.unpack('B', data[current])[0] ).decode('utf-8') )
+            current = current+1
+            colunm = colunm+1
+            if colunm == 32:
+                self.textCtrl.AppendText('\n')
+                # charPrint(struct.unpack('16s', data[current - 16:current])[0])
+                colunm = 0
+                row = row + 1
+
     def drawTreeCtrl(self,index):
         index = int(index)
 
         self.tree.DeleteAllItems()
         self.root = self.tree.AddRoot(u"第"+`index`+u"个数据包")
         tem = self.temList[index]
+
+        self.writeRawData(tem.pack())
+
         childId1 = self.tree.AppendItem(self.root, u"链路层数据")
         self.tree.AppendItem(childId1, u"源MAC地址： " + self.listData[index][2])
         self.tree.AppendItem(childId1, u"目标MAC地址： " + self.listData[index][3])
@@ -232,12 +276,13 @@ def thread_print():
 
 def readFromPcap(global_queue):
     # global global_queue, mutex, isStop
-    pc=pcap.pcap(immediate = False)
+    pc=pcap.pcap(immediate = True)
     # pc.setfilter()
     for ptime,pdata in pc:
         # if isStop:
         #     return
         tem= dpkt.ethernet.Ethernet(pdata)#pdata不能被序列化 暂时在读取时处理
+
         global_queue.put((ptime,tem))
 
         # print ptime
