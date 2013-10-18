@@ -54,14 +54,74 @@ def stamp2time(stamp, format_type='%Y-%m-%d %H:%M:%S'):
 #             print "yes"
 #         else:
 #             print "no"
+class VirtualListCtrl(wx.ListCtrl):#1 声明虚列表
+    """
+    A generic virtual listctrl that fetches data from a DataSource.
+    """
+    def __init__(self, parent, dataSource):
+        wx.ListCtrl.__init__(self, parent,
+            style=wx.LC_REPORT|wx.LC_SINGLE_SEL|wx.LC_VIRTUAL)#使用wx.LC_VIRTUAL标记创建虚列表
+        self.dataSource = dataSource
+        self.Bind(wx.EVT_LIST_CACHE_HINT, self.DoCacheItems)
+        self.SetItemCount(len(dataSource) )#设置列表的大小
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected, self)
 
+        columns = [u"编号", u"时间" ,u"源网卡地址", u"目的网卡地址", u"协议", u"源IP", u"目的IP", u"源端口", u"目的端口"]
+
+        # Add some columns
+        for col in range(len(columns)):#增加列
+            self.InsertColumn(col,columns[col])
+                
+        # set the width of the columns in various ways
+        self.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)#设置列的宽度
+        self.SetColumnWidth(1, 140)
+        self.SetColumnWidth(2, 120)
+        self.SetColumnWidth(3, 120)
+        self.SetColumnWidth(4, 40)
+        self.SetColumnWidth(5, 100)
+        self.SetColumnWidth(6, 100)
+    
+    def OnItemSelected(self, evt):
+        item = evt.GetItem()
+        print "Item selected:", item.GetText()
+        self.getParentFrame().drawTreeCtrl(item.GetText())
+
+
+    def getParentFrame(self):
+        parent = self.GetParent()
+        while not isinstance(parent , DemoFrame):
+            parent = parent.GetParent()
+
+        return parent
+
+    def DoCacheItems(self, evt):
+        # self.dataSource.UpdateCache(
+        #     evt.GetCacheFrom(), evt.GetCacheTo())
+        pass
+
+    def OnGetItemText(self, item, col):#得到需求时的文本
+        data = self.dataSource[item]
+        try:
+            return data[col]
+        except:
+            return ''
+
+    def OnGetItemAttr(self, item):  return None
+    def OnGetItemImage(self, item): return -1
+
+    def refresh(self):
+        length = len(self.dataSource)
+        self.SetItemCount(length)#设置列表的大小
+        self.ScrollList(0, length - 1)
 
 class DemoFrame(wx.Frame):
     def __init__(self):
         wx.Frame.__init__(self, None, -1,
                           u"pySniffer powerd by 天外之音",
-                          size=(1000,400))
-
+                          size=(900,600))
+        self.num = 0
+        self.listData = []
+        self.temList  = []
         
         self.rootPanel = wx.Panel(self)
         self.drawList(self.rootPanel);
@@ -69,43 +129,39 @@ class DemoFrame(wx.Frame):
         self.drawTextCtrl(self.rootPanel)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        vbox.Add(self.list, 1, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 20)
-        vbox.Add(self.tree, 1, wx.EXPAND | wx.ALL ^wx.TOP | wx.ALIGN_TOP, 20)
-
+        vbox.Add(self.list, 1, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 10)
+        vbox.Add(self.tree, 0, wx.EXPAND | wx.ALL ^wx.TOP | wx.ALIGN_TOP, 10)
+        vbox.Add(self.textCtrl, 0, wx.EXPAND | wx.ALL ^wx.TOP | wx.ALIGN_TOP, 10)
         self.rootPanel.SetSizer(vbox)
-        self.num = 0
+        
     def drawTextCtrl(self,panel):
-        pass
-    def drawTreeCtrl(self,panel):
-        root = self.tree.AddRoot(u"第xx个数据包")
-        childId1 = self.tree.AppendItem(root, u"链路层数据")
-        childId2 = self.tree.AppendItem(root, u"网络层数据")
-        childId3 = self.tree.AppendItem(root, u"应用层数据")
+        self.textCtrl = wx.TextCtrl(panel, -1, "I've entered some text!",size=(-1, 100),style = wx.TE_READONLY)
+    def drawTreeCtrl(self,index):
+        index = int(index) - 1
+
+        self.tree.DeleteAllItems()
+        self.root = self.tree.AddRoot(u"第"+`index`+u"个数据包")
+        tem = self.temList[index]
+        childId1 = self.tree.AppendItem(self.root, u"链路层数据")
+        self.tree.AppendItem(childId1, u"源MAC地址： " + self.listData[index][2])
+        self.tree.AppendItem(childId1, u"目标MAC地址： " + self.listData[index][3])
+        childId2 = self.tree.AppendItem(self.root, u"网络层数据")
+        childId3 = self.tree.AppendItem(self.root, u"应用层数据")
         pass
     def drawList(self,panel): #创建主监视列表
-        self.list = wx.ListCtrl(panel, -1, style=wx.LC_REPORT | wx.LC_HRULES)#创建列表
 
-        columns = [u"编号", u"时间" ,u"源网卡地址", u"目的网卡地址", u"协议", u"源IP", u"目的IP", u"源端口", u"目的端口"]
-
-        # Add some columns
-        for col in range(len(columns)):#增加列
-            self.list.InsertColumn(col,columns[col])
-                
-        # set the width of the columns in various ways
-        self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)#设置列的宽度
-        self.list.SetColumnWidth(1, 140)
-        self.list.SetColumnWidth(2, 120)
-        self.list.SetColumnWidth(3, 120)
-        self.list.SetColumnWidth(4, 40)
-        self.list.SetColumnWidth(5, 100)
-        self.list.SetColumnWidth(6, 100)
-    def addItem(self, itemList):
+        self.list = VirtualListCtrl(panel,self.listData)
+    def addItem(self, itemList, tem):
         self.num += 1
-        index = self.list.InsertStringItem(sys.maxint, `self.num`)
-        for col in range(0,len(itemList)):
-            self.list.SetStringItem(index, col + 1, itemList[col])
+        # index = self.list.InsertStringItem(sys.maxint, `self.num`)
+        # for col in range(0,len(itemList)):
+        #     self.list.SetStringItem(index, col + 1, itemList[col])
 
-        self.list.ScrollList(0, index)
+        # self.list.ScrollList(0, index)
+        itemList.insert(0, `self.num`)
+        self.listData.append(itemList)
+        self.temList.append(tem)
+        self.list.refresh()
 
 def eth_addr_to_str(mac_addr):
     mac_addr = binascii.hexlify(mac_addr)
@@ -113,7 +169,7 @@ def eth_addr_to_str(mac_addr):
     for i in range(12/2) :
         s.append( mac_addr[i*2:i*2+2] )
     r = ":".join(s)
-    return r
+    return r.upper()
 
 
 def thread_print():
@@ -122,8 +178,6 @@ def thread_print():
     threadname = threading.currentThread().getName()
     try:
         while not isStop:
-
-
             ptime,pdata = global_queue.get()
 
             if isStop == True:
@@ -169,7 +223,7 @@ def thread_print():
 
 
 
-            frame.addItem(itemList)
+            frame.addItem(itemList,tem)
 
     except KeyboardInterrupt:
         return
@@ -177,7 +231,7 @@ def thread_print():
 
 def readFromPcap(global_queue):
     # global global_queue, mutex, isStop
-    pc=pcap.pcap(immediate = True)
+    pc=pcap.pcap(immediate = False)
     # pc.setfilter()
     for ptime,pdata in pc:
         # if isStop:
