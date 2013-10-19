@@ -209,16 +209,18 @@ class DemoFrame(wx.Frame):
         colunm  = 0
         row     = 0  
         charsinline = 20
+        dataToWrite = ''
         while current < length:
             remain = length - current
             charsThisLine = charsinline if remain >= charsinline else remain
             
             chars = charPrint(struct.unpack(`charsThisLine`+'s', data[current:current + charsThisLine])[0])
-            self.textCtrlForCharData.AppendText(chars)
+            dataToWrite += chars
             
             current = current + charsinline
             if current < length:
-                self.textCtrlForCharData.AppendText('\n')
+                dataToWrite += '\n'
+        self.textCtrlForCharData.AppendText(dataToWrite)
 
     def writeRawData(self,data):
         self.textCtrlForRawData.Clear()
@@ -228,32 +230,32 @@ class DemoFrame(wx.Frame):
         current = 0 
         colunm  = 0
         row     = 0  
-
+        dataToWrite = ''
         while current < lenth:
-            self.textCtrlForRawData.AppendText( hexPrint(struct.unpack('B', data[current])[0] ).decode('utf-8') )
+            dataToWrite += hexPrint(struct.unpack('B', data[current])[0] ).decode('utf-8')
             current = current+1
             colunm = colunm+1
             if colunm == 20:
-                self.textCtrlForRawData.AppendText('\n')
-
+                dataToWrite += '\n'
                 colunm = 0
                 row = row + 1
+        self.textCtrlForRawData.AppendText(dataToWrite)
+        
+    def resizeTextCtrl(self):
         LineSpace = self.textCtrlForRawData.GetBasicStyle().GetLineSpacing()
         font = self.textCtrlForRawData.GetFont()
-        heightInOneLine = font.GetPointSize() * 96 / 72 + LineSpace
-        print heightInOneLine
-        print self.textCtrlForRawData.GetNumberOfLines(),row
+        heightInOneLine = font.GetPointSize() * 96 / 72 + LineSpace #计算行高
+
         size = (-1, self.textCtrlForRawData.GetNumberOfLines() * heightInOneLine + LineSpace)
         self.scroll.SetVirtualSize(size)
 
         self.textCtrlForRawData.SetSize(size)
         self.textCtrlForCharData.SetSize(size)
 
-        print self.scroll.SetAutoLayout(False)
+        self.scroll.SetAutoLayout(False)
 
         self.scroll.Refresh()
-        print size,self.textCtrlForRawData.GetSize(),self.scroll.GetVirtualSize()
-
+        # print size,self.textCtrlForRawData.GetSize(),self.scroll.GetVirtualSize()
     def drawTreeCtrl(self,index):
         index = int(index)
 
@@ -263,6 +265,7 @@ class DemoFrame(wx.Frame):
 
         self.writeRawData(tem.pack())
         self.writeCharData(tem.pack())
+        self.resizeTextCtrl()
 
         childId1 = self.tree.AppendItem(self.root, u"链路层数据")
         self.tree.AppendItem(childId1, u"源MAC地址： " + self.listData[index][2])
