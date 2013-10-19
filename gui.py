@@ -170,30 +170,58 @@ class DemoFrame(wx.Frame):
         self.rootPanel.SetSizer(vbox)
     
     def onSelect(self,evt):
-        if evt.GetEventType() == wx.EVT_LEFT_DOWN.typeId:
-            self.leftclicked = 1
-            self.textCtrlForCharData.SetSelection(0,0)
-            print 'clicked'
-            evt.Skip()
-        if evt.GetEventType() == wx.EVT_LEFT_UP.typeId:
-            self.leftclicked = 0
-            print 'unclicked'
-        if evt.GetEventType() == wx.EVT_MOTION.typeId:
-            if self.leftclicked == 1:
-                start,end = self.textCtrlForRawData.GetSelection()
-                
-                nlines = end / 61 - start / 61#中间经过几个换行符
-                rsatrt = (start + 1)/3
-                rend = (end -1 - nlines)/ 3 + 1 + nlines
-                self.textCtrlForCharData.SetSelection(rsatrt,rend)
-            evt.Skip()
+        if evt.GetEventObject() == self.textCtrlForRawData:
+            if evt.GetEventType() == wx.EVT_LEFT_DOWN.typeId:
+                self.leftclicked = 1
+                self.textCtrlForCharData.SetSelection(0,0)
+                print 'clicked'
+                evt.Skip()
+            if evt.GetEventType() == wx.EVT_LEFT_UP.typeId:
+                self.leftclicked = 0
+                print 'unclicked'
+            if evt.GetEventType() == wx.EVT_MOTION.typeId:
+                if self.leftclicked == 1:
+                    start,end = self.textCtrlForRawData.GetSelection()
+                    nlinesbeforestart = start / 61
+                    nlinesbeforeend   = end / 61
+                    nlines = nlinesbeforeend - nlinesbeforestart #中间经过几个换行符
+                    rsatrt = (start + 1 - nlinesbeforestart)/3 + nlinesbeforestart
+                    rend = (end -1 - nlinesbeforeend)/ 3 + 1 + nlinesbeforeend
+                    self.textCtrlForCharData.SetSelection(rsatrt,rend)
+                evt.Skip()
+        if evt.GetEventObject() == self.textCtrlForCharData:
+            if evt.GetEventType() == wx.EVT_LEFT_DOWN.typeId:
+                self.rightclicked = 1
+                self.textCtrlForRawData.SetSelection(0,0)
+                print 'clicked'
+                evt.Skip()
+            if evt.GetEventType() == wx.EVT_LEFT_UP.typeId:
+                self.rightclicked = 0
+                print 'unclicked'
+            if evt.GetEventType() == wx.EVT_MOTION.typeId:
+                if self.rightclicked == 1:
+                    start,end = self.textCtrlForCharData.GetSelection()
+                    
+                    nlinesbeforestart = start / 21
+                    nlinesbeforeend   = end / 21
+                    nlines = nlinesbeforeend - nlinesbeforestart
+                    rsatrt = ( start - nlinesbeforestart) * 3 + nlinesbeforestart
+                    rend = (end - nlinesbeforeend) * 3 - 1 + nlinesbeforeend
+                    self.textCtrlForRawData.SetSelection(rsatrt,rend)
+                evt.Skip()
     def drawTextCtrl(self,panel):
         self.textCtrlForRawData = wx.richtext.RichTextCtrl(panel, -1, "I've entered some text!",size=(-1, 100),style =  wx.TE_READONLY | wx.TE_MULTILINE)
         self.textCtrlForCharData = wx.richtext.RichTextCtrl(panel, -1, "I've entered some text else!",size=(-1, 100),style = wx.TE_READONLY | wx.TE_MULTILINE)
         self.textCtrlForRawData.Bind(wx.EVT_LEFT_DOWN,self.onSelect)
         self.textCtrlForRawData.Bind(wx.EVT_LEFT_UP,self.onSelect)
         self.textCtrlForRawData.Bind(wx.EVT_MOTION,self.onSelect)
+
+        self.textCtrlForCharData.Bind(wx.EVT_LEFT_DOWN,self.onSelect)
+        self.textCtrlForCharData.Bind(wx.EVT_LEFT_UP,self.onSelect)
+        self.textCtrlForCharData.Bind(wx.EVT_MOTION,self.onSelect)
+
         self.leftclicked = 0
+        self.rightclicked = 0
 
         # font = self.textCtrlForRawData.GetFont()
         # print font.GetFaceName()
