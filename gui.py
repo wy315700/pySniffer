@@ -142,8 +142,16 @@ class DemoFrame(wx.Frame):
         self.rootPanel = wx.Panel(self)
         self.drawList(self.rootPanel);
         self.tree = wx.TreeCtrl(self.rootPanel , size = (-1,100))
-        self.drawTextCtrl(self.rootPanel)
         
+        
+        self.scroll = wx.ScrolledWindow(self.rootPanel, id=-1, pos=wx.DefaultPosition,
+                        size=(-1, 100), style=wx.VSCROLL,
+                            name="scrolledWindow")
+        self.scroll.SetScrollRate(1, 1)
+        self.scroll.SetVirtualSize((-1,4000) )
+        self.scroll.SetAutoLayout(False)
+
+        self.drawTextCtrl(self.scroll)
 
         vbox = wx.BoxSizer(wx.VERTICAL)
 
@@ -156,7 +164,9 @@ class DemoFrame(wx.Frame):
 
         hbox1.Add(self.textCtrlForCharData, 1, wx.EXPAND | wx.ALL ^wx.LEFT | wx.ALIGN_LEFT, 0)
 
-        vbox.Add(hbox1, 0, wx.EXPAND | wx.ALL ^wx.TOP | wx.ALIGN_TOP, 10)
+        self.scroll.SetSizer(hbox1)
+        
+        vbox.Add(self.scroll, 0, wx.EXPAND | wx.ALL ^wx.TOP | wx.ALIGN_TOP, 10)
         self.rootPanel.SetSizer(vbox)
     
     def onSelect(self,evt):
@@ -171,8 +181,10 @@ class DemoFrame(wx.Frame):
         if evt.GetEventType() == wx.EVT_MOTION.typeId:
             if self.leftclicked == 1:
                 start,end = self.textCtrlForRawData.GetSelection()
-                rsatrt = (start + 4)/3 - 1
-                rend = (end -1 )/ 3 + 1
+                
+                nlines = end / 61 - start / 61#中间经过几个换行符
+                rsatrt = (start + 1)/3
+                rend = (end -1 - nlines)/ 3 + 1 + nlines
                 self.textCtrlForCharData.SetSelection(rsatrt,rend)
             evt.Skip()
     def drawTextCtrl(self,panel):
@@ -188,6 +200,7 @@ class DemoFrame(wx.Frame):
         font1 = wx.Font(9, wx.MODERN, wx.NORMAL, wx.NORMAL, False, u'Consolas')
         self.textCtrlForRawData.SetFont(font1) #使用等宽字体
         self.textCtrlForCharData.SetFont(font1) #使用等宽字体
+
     
     def writeCharData(self,data):
         self.textCtrlForCharData.Clear()
@@ -202,10 +215,11 @@ class DemoFrame(wx.Frame):
             
             chars = charPrint(struct.unpack(`charsThisLine`+'s', data[current:current + charsThisLine])[0])
             self.textCtrlForCharData.AppendText(chars)
-            self.textCtrlForCharData.AppendText('\n')
+            
             current = current + charsinline
-        # self.textCtrlForCharData.SetFocus()
-        # self.textCtrlForCharData.SetSelection(-1,-1)
+            if current < length:
+                self.textCtrlForCharData.AppendText('\n')
+
     def writeRawData(self,data):
         self.textCtrlForRawData.Clear()
         # self.textCtrl.AppendText(charPrint(data).decode('utf-8') )
@@ -224,6 +238,21 @@ class DemoFrame(wx.Frame):
 
                 colunm = 0
                 row = row + 1
+        LineSpace = self.textCtrlForRawData.GetBasicStyle().GetLineSpacing()
+        font = self.textCtrlForRawData.GetFont()
+        heightInOneLine = font.GetPointSize() * 96 / 72 + LineSpace
+        print heightInOneLine
+        print self.textCtrlForRawData.GetNumberOfLines(),row
+        size = (-1, self.textCtrlForRawData.GetNumberOfLines() * heightInOneLine + LineSpace)
+        self.scroll.SetVirtualSize(size)
+
+        self.textCtrlForRawData.SetSize(size)
+        self.textCtrlForCharData.SetSize(size)
+
+        print self.scroll.SetAutoLayout(False)
+
+        self.scroll.Refresh()
+        print size,self.textCtrlForRawData.GetSize(),self.scroll.GetVirtualSize()
 
     def drawTreeCtrl(self,index):
         index = int(index)
