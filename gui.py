@@ -1,6 +1,6 @@
 #coding=utf-8  
 __author__ = 'wangyang'
-import wx
+import wx,wx.richtext
 import pcap
 import dpkt
 import Queue
@@ -29,7 +29,7 @@ def hexPrint(data):
 def charPrint(data):
     length = len(data)
 
-    data = re.sub("[\x00-\x1f|\x7f-\xff]+",".",data)
+    data = re.sub("[\x00-\x1f|\x7f-\xff]",".",data)
 
     return data
 # class ListBoxFrame(wx.Frame):
@@ -158,13 +158,33 @@ class DemoFrame(wx.Frame):
 
         vbox.Add(hbox1, 0, wx.EXPAND | wx.ALL ^wx.TOP | wx.ALIGN_TOP, 10)
         self.rootPanel.SetSizer(vbox)
-        
+    
+    def onSelect(self,evt):
+        if evt.GetEventType() == wx.EVT_LEFT_DOWN.typeId:
+            self.leftclicked = 1
+            self.textCtrlForCharData.SetSelection(0,0)
+            print 'clicked'
+            evt.Skip()
+        if evt.GetEventType() == wx.EVT_LEFT_UP.typeId:
+            self.leftclicked = 0
+            print 'unclicked'
+        if evt.GetEventType() == wx.EVT_MOTION.typeId:
+            if self.leftclicked == 1:
+                start,end = self.textCtrlForRawData.GetSelection()
+                rsatrt = (start + 4)/3 - 1
+                rend = (end -1 )/ 3 + 1
+                self.textCtrlForCharData.SetSelection(rsatrt,rend)
+            evt.Skip()
     def drawTextCtrl(self,panel):
-        self.textCtrlForRawData = wx.TextCtrl(panel, -1, "I've entered some text!",size=(-1, 100),style = wx.TE_READONLY | wx.TE_MULTILINE)
-        self.textCtrlForCharData = wx.TextCtrl(panel, -1, "I've entered some text else!",size=(-1, 100),style = wx.TE_READONLY | wx.TE_MULTILINE)
+        self.textCtrlForRawData = wx.richtext.RichTextCtrl(panel, -1, "I've entered some text!",size=(-1, 100),style =  wx.TE_READONLY | wx.TE_MULTILINE)
+        self.textCtrlForCharData = wx.richtext.RichTextCtrl(panel, -1, "I've entered some text else!",size=(-1, 100),style = wx.TE_READONLY | wx.TE_MULTILINE)
+        self.textCtrlForRawData.Bind(wx.EVT_LEFT_DOWN,self.onSelect)
+        self.textCtrlForRawData.Bind(wx.EVT_LEFT_UP,self.onSelect)
+        self.textCtrlForRawData.Bind(wx.EVT_MOTION,self.onSelect)
+        self.leftclicked = 0
 
-        font = self.textCtrlForRawData.GetFont()
-        print font.GetFaceName()
+        # font = self.textCtrlForRawData.GetFont()
+        # print font.GetFaceName()
         font1 = wx.Font(9, wx.MODERN, wx.NORMAL, wx.NORMAL, False, u'Consolas')
         self.textCtrlForRawData.SetFont(font1) #使用等宽字体
         self.textCtrlForCharData.SetFont(font1) #使用等宽字体
@@ -184,7 +204,8 @@ class DemoFrame(wx.Frame):
             self.textCtrlForCharData.AppendText(chars)
             self.textCtrlForCharData.AppendText('\n')
             current = current + charsinline
-        self.textCtrlForCharData.SetSelection(1,20)
+        # self.textCtrlForCharData.SetFocus()
+        # self.textCtrlForCharData.SetSelection(-1,-1)
     def writeRawData(self,data):
         self.textCtrlForRawData.Clear()
         # self.textCtrl.AppendText(charPrint(data).decode('utf-8') )
