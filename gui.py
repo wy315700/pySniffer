@@ -89,6 +89,7 @@ class ListBoxFrame(wx.Frame):
         self.listBox = wx.ListBox(self.panel, -1, (20, 20), (160, 120), self.devlist, 
                 wx.LB_SINGLE)
         self.listBox.SetSelection(3)
+        self.listBox.Bind(wx.EVT_LISTBOX_DCLICK,self.OnClick)
 
     def drawButton(self):
         self.button = wx.Button(self.panel, -1, u"选择", pos=(50, 20))
