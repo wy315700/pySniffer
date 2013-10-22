@@ -31,45 +31,82 @@ def charPrint(data):
 
     data = re.sub("[\x00-\x1f|\x7f-\xff]",".",data)
 
-    return data
-# class ListBoxFrame(wx.Frame):
-#     def __init__(self):
-#         wx.Frame.__init__(self, None, -1, 'List Box Example', 
-#                 size=(250, 200))
-#         self.Centre()
+    return data 
+
+
+def openFrameForDevChoise():
+    frame = ListBoxFrame()
+    frame.Show()
+    
+
+def openFrameForSniffer(name = None):
+    global_queue = multiprocessing.Queue(maxsize = 0)
+    readThread = multiprocessing.Process(target=readFromPcap, args=(global_queue,name))
+    readThread.start()
+    frame = DemoFrame()
+    frame.Show()
+    printThread = threading.Thread(target=thread_print, args=(global_queue,frame))
+    printThread.start()
+
+class ListBoxFrame(wx.Frame):
+    def __init__(self):
+        wx.Frame.__init__(self, None, -1, u'网卡选择', 
+                size=(600, 300))
+        self.Centre()
         
-#         self.panel = wx.Panel(self, -1)
-#         vbox = wx.BoxSizer(wx.VERTICAL)
+        self.panel = wx.Panel(self, -1)
+        vbox = wx.BoxSizer(wx.VERTICAL)
 
-#         self.getAllDev()
-#         self.drawListBox()
-#         self.drawButton()
-#         vbox.Add(self.listBox, 1, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 20)
-#         vbox.Add(self.button,  0, wx.ALIGN_CENTER | wx.ALL ^wx.TOP | wx.ALIGN_BOTTOM, 20)
-#         self.panel.SetSizer(vbox)
+        self.getAllDev()
+        self.drawListBox()
+        self.drawButton()
+        self.drawStaticText()
+        vbox.Add(self.label, 0, wx.EXPAND | wx.ALL ^wx.BOTTOM | wx.ALIGN_TOP, 20)
+        vbox.Add(self.listBox, 1, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 20)
+        vbox.Add(self.button,  0, wx.ALIGN_CENTER | wx.ALL ^wx.TOP | wx.ALIGN_BOTTOM, 20)
+        self.panel.SetSizer(vbox)
 
-#     def getAllDev(self):
-#         self.devlist = pcap.findalldevs()
+    def getAllDev(self):
+        self.devlist = [] #用于显示
+        self.devnamelist = [] #由于网卡数据
 
-#     def drawListBox(self):
-#         self.listBox = wx.ListBox(self.panel, -1, (20, 20), (160, 120), self.devlist, 
-#                 wx.LB_SINGLE)
-#         self.listBox.SetSelection(3)
+        maxlength = 0;
+        for dev in pcap.findalldevs():
+            length = len(dev.description)
+            maxlength = maxlength if maxlength > length else length
+        for dev in pcap.findalldevs():
+            devname = dev.description
+            self.devnamelist.append(dev.name)
+            devname += ' '*(maxlength - len(devname))
+            devname += dev.name
+            self.devlist.append(devname)
 
-#     def drawButton(self):
-#         self.button = wx.Button(self.panel, -1, u"选择", pos=(50, 20))
-#         self.Bind(wx.EVT_BUTTON, self.OnClick, self.button)
-#         self.button.SetDefault()
+    def drawStaticText(self):
+        self.label = wx.StaticText(self.panel, -1, u"请选择网卡", 
+                (100, 10))
 
-#     def OnClick(self, event):
-#         dlg = wx.MessageDialog(None, u"您选择的网卡是："+ self.devlist[self.listBox.GetSelection()],
-#                           'A Message Box',
-#                           wx.YES_NO | wx.ICON_QUESTION)
-#         retCode = dlg.ShowModal()
-#         if (retCode == wx.ID_YES):
-#             print "yes"
-#         else:
-#             print "no"
+    def drawListBox(self):
+        self.listBox = wx.ListBox(self.panel, -1, (20, 20), (160, 120), self.devlist, 
+                wx.LB_SINGLE)
+        self.listBox.SetSelection(3)
+
+    def drawButton(self):
+        self.button = wx.Button(self.panel, -1, u"选择", pos=(50, 20))
+        self.Bind(wx.EVT_BUTTON, self.OnClick, self.button)
+        self.button.SetDefault()
+
+    def OnClick(self, event):
+        dlg = wx.MessageDialog(None, u"您选择的网卡是："+ self.devlist[self.listBox.GetSelection()],
+                          'A Message Box',
+                          wx.YES_NO | wx.ICON_QUESTION)
+        retCode = dlg.ShowModal()
+        if (retCode == wx.ID_YES):
+            print "yes"
+        else:
+            print "no"
+        openFrameForSniffer(self.devnamelist[self.listBox.GetSelection()])
+        self.Destroy()  
+
 class VirtualListCtrl(wx.ListCtrl):#1 声明虚列表
     """
     A generic virtual listctrl that fetches data from a DataSource.
@@ -315,7 +352,7 @@ class DemoFrame(wx.Frame):
         self.num += 1
         self.listData.append(itemList)
         self.temList.append(tem)
-        self.list.refresh()
+        self.list.refresh() 
 
 def eth_addr_to_str(mac_addr):
     mac_addr = binascii.hexlify(mac_addr)
@@ -326,8 +363,8 @@ def eth_addr_to_str(mac_addr):
     return r.upper()
 
 
-def thread_print():
-    global global_queue, mutex, isStop
+def thread_print(global_queue, frame):
+    global  mutex, isStop
     # 获得线程名
     threadname = threading.currentThread().getName()
     try:
@@ -340,7 +377,7 @@ def thread_print():
             # tem= dpkt.ethernet.Ethernet(pdata)
             tem = pdata #pdata不能被序列化 暂时在读取时处理
 
-            global frame
+            # global frame
 
             
 
@@ -383,9 +420,9 @@ def thread_print():
         return
 
 
-def readFromPcap(global_queue):
+def readFromPcap(global_queue, name = None):
     # global global_queue, mutex, isStop
-    pc=pcap.pcap(immediate = True)
+    pc=pcap.pcap(name = name, immediate = True)
     # pc.setfilter()
     for ptime,pdata in pc:
         # if isStop:
@@ -397,27 +434,23 @@ def readFromPcap(global_queue):
         # print ptime
         # 释放锁
         # break
-if __name__ == '__main__':
 
+class App(wx.App):
+
+    def OnInit(self):
+        self.frame = ListBoxFrame()   #4
+        self.frame.Show()
+        self.SetTopWindow(self.frame)   #5
+        return True
+
+if __name__ == '__main__':
     isStop = False
 
-
-    global_queue = multiprocessing.Queue(maxsize = 0)
-
-    readThread = multiprocessing.Process(target=readFromPcap, args=(global_queue,))
-    # readThread = threading.Thread(target=readFromPcap, args=())
-    readThread.start()
-
     app = wx.PySimpleApp()
-    frame = DemoFrame()
-    frame.Show()
 
-    printThread = threading.Thread(target=thread_print, args=())
-    printThread.start()
-
-
+    openFrameForDevChoise()
+    
     app.MainLoop()
-
     isStop = True
 
     print 'Exit!!'
