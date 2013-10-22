@@ -131,7 +131,7 @@ class VirtualListCtrl(wx.ListCtrl):#1 声明虚列表
         self.SetColumnWidth(1, 140)
         self.SetColumnWidth(2, 120)
         self.SetColumnWidth(3, 120)
-        self.SetColumnWidth(4, 40)
+        self.SetColumnWidth(4, 60)
         self.SetColumnWidth(5, 100)
         self.SetColumnWidth(6, 100)
     
@@ -403,6 +403,7 @@ def thread_print(global_queue, frame):
             else:
                 if tem.data.__class__.__name__=='IP6':
                     try:
+                        itemList[3] = tem.data.data.__class__.__name__;
                         itemList.append(socket.inet_ntop(socket.AF_INET6, tem.data.src)) #source IP
                         itemList.append(socket.inet_ntop(socket.AF_INET6, tem.data.dst)) #dist IP
                     except:
