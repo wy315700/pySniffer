@@ -61,9 +61,9 @@ class ListBoxFrame(wx.Frame):
         self.drawListBox()
         self.drawButton()
         self.drawStaticText()
-        vbox.Add(self.label, 0, wx.EXPAND | wx.ALL ^wx.BOTTOM | wx.ALIGN_TOP, 20)
-        vbox.Add(self.listBox, 1, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 20)
-        vbox.Add(self.button,  0, wx.ALIGN_CENTER | wx.ALL ^wx.TOP | wx.ALIGN_BOTTOM, 20)
+        vbox.Add(self.label, 0, wx.EXPAND | wx.ALL ^wx.BOTTOM | wx.ALIGN_TOP, 10)
+        vbox.Add(self.listBox, 1, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 10)
+        vbox.Add(self.button,  0, wx.ALIGN_CENTER | wx.ALL ^wx.TOP | wx.ALIGN_BOTTOM, 10)
         self.panel.SetSizer(vbox)
 
     def getAllDev(self):
