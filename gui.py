@@ -193,6 +193,13 @@ class DemoFrame(wx.Frame):
 
         vbox = wx.BoxSizer(wx.VERTICAL)
 
+        self.drawButton(self.rootPanel)
+
+        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
+        hbox2.Add(self.button, 0, wx.EXPAND | wx.RIGHT | wx.ALIGN_LEFT, 10)
+
+        vbox.Add(hbox2, 0, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 10)
+
         vbox.Add(self.list, 1, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 10)
         vbox.Add(self.tree, 0, wx.EXPAND | wx.ALL ^wx.TOP | wx.ALIGN_TOP, 10)
 
@@ -247,6 +254,20 @@ class DemoFrame(wx.Frame):
                     rend = (end - nlinesbeforeend) * 3 - 1 + nlinesbeforeend
                     self.textCtrlForRawData.SetSelection(rsatrt,rend)
                 evt.Skip()
+    def OnClick(self,evt):
+        if evt.GetEventObject() == self.button:
+            if evt.GetEventType() == wx.EVT_BUTTON.typeId:
+                if self.isPause == False:
+                    self.button.SetLabel("start")
+                    self.isPause = True
+                else:
+                    self.button.SetLabel("pause")
+                    self.isPause = False
+        pass
+    def drawButton(self,panel):
+        self.button = wx.Button(panel, -1, "pause")
+        self.Bind(wx.EVT_BUTTON, self.OnClick, self.button)
+        self.isPause = False
     def drawTextCtrl(self,panel):
         self.textCtrlForRawData = wx.richtext.RichTextCtrl(panel, -1, "I've entered some text!",size=(-1, 100),style =  wx.TE_READONLY | wx.TE_MULTILINE)
         self.textCtrlForCharData = wx.richtext.RichTextCtrl(panel, -1, "I've entered some text else!",size=(-1, 100),style = wx.TE_READONLY | wx.TE_MULTILINE)
@@ -349,6 +370,8 @@ class DemoFrame(wx.Frame):
         #     self.list.SetStringItem(index, col + 1, itemList[col])
 
         # self.list.ScrollList(0, index)
+        if self.isPause == True:
+            return
         itemList.insert(0, `self.num`)
         self.num += 1
         self.listData.append(itemList)
@@ -429,9 +452,12 @@ def readFromPcap(global_queue, name = None):
     for ptime,pdata in pc:
         # if isStop:
         #     return
-        tem= dpkt.ethernet.Ethernet(pdata)#pdata不能被序列化 暂时在读取时处理
-
-        global_queue.put((ptime,tem))
+        
+        try:
+            tem= dpkt.ethernet.Ethernet(pdata)#pdata不能被序列化 暂时在读取时处理
+            global_queue.put((ptime,tem))
+        except Exception,e:
+            print str(e)
 
         # print ptime
         # 释放锁
