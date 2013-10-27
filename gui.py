@@ -495,6 +495,7 @@ class App(wx.App):
         return True
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     isStop = False
 
     app = wx.PySimpleApp()
