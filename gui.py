@@ -39,9 +39,9 @@ def openFrameForDevChoise():
     frame.Show()
     
 
-def openFrameForSniffer(name = None):
+def openFrameForSniffer(name = None , filter = None):
     global_queue = multiprocessing.Queue(maxsize = 0)
-    readThread = multiprocessing.Process(target=readFromPcap, args=(global_queue,name))
+    readThread = multiprocessing.Process(target=readFromPcap, args=(global_queue,name, filter))
     readThread.start()
     frame = DemoFrame()
     frame.Show()
@@ -61,8 +61,10 @@ class ListBoxFrame(wx.Frame):
         self.drawListBox()
         self.drawButton()
         self.drawStaticText()
+        self.drawTextCtrl()
         vbox.Add(self.label, 0, wx.EXPAND | wx.ALL ^wx.BOTTOM | wx.ALIGN_TOP, 10)
         vbox.Add(self.listBox, 1, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 10)
+        vbox.Add(self.textCtrl,0, wx.EXPAND | wx.ALL | wx.ALIGN_TOP, 10)
         vbox.Add(self.button,  0, wx.ALIGN_CENTER | wx.ALL ^wx.TOP | wx.ALIGN_BOTTOM, 10)
         self.panel.SetSizer(vbox)
 
@@ -90,12 +92,19 @@ class ListBoxFrame(wx.Frame):
                 wx.LB_SINGLE)
         self.listBox.SetSelection(3)
         self.listBox.Bind(wx.EVT_LISTBOX_DCLICK,self.OnClick)
-
+    def drawTextCtrl(self):
+        self.textCtrl = wx.richtext.RichTextCtrl(self.panel, -1, "" ,size=(-1, 40))
+        self.textCtrl.SetHint(u"请输入过滤条件")
+        self.isTextCtrlEmpty = True
+        self.textCtrl.Bind(wx.EVT_LEFT_DOWN, self.OnType)
     def drawButton(self):
         self.button = wx.Button(self.panel, -1, u"选择", pos=(50, 20))
         self.Bind(wx.EVT_BUTTON, self.OnClick, self.button)
         self.button.SetDefault()
-
+    def OnType(self, evt):
+        if self.isTextCtrlEmpty == True:
+            self.isTextCtrlEmpty = False
+            self.textCtrl.Clear()
     def OnClick(self, event):
         dlg = wx.MessageDialog(None, u"您选择的网卡是："+ self.devlist[self.listBox.GetSelection()],
                           'A Message Box',
@@ -105,7 +114,10 @@ class ListBoxFrame(wx.Frame):
             print "yes"
         else:
             print "no"
-        openFrameForSniffer(self.devnamelist[self.listBox.GetSelection()])
+        value = None
+        if self.isTextCtrlEmpty != True:
+            value = self.textCtrl.GetValue()
+        openFrameForSniffer(self.devnamelist[self.listBox.GetSelection()], value)
         self.Destroy()  
 
 class VirtualListCtrl(wx.ListCtrl):#1 声明虚列表
@@ -359,7 +371,17 @@ class DemoFrame(wx.Frame):
         self.tree.AppendItem(childId1, u"目标MAC地址： " + self.listData[index][3])
         self.tree.AppendItem(childId1, u"数据类型： " + tem.data.__class__.__name__)
         childId2 = self.tree.AppendItem(self.root, u"网络层数据")
-        childId3 = self.tree.AppendItem(self.root, u"应用层数据")
+
+        if tem.data.__class__.__name__=='IP':
+            src_ip  = '%d.%d.%d.%d'%tuple(map(ord,list(tem.data.src)))
+            dist_ip = '%d.%d.%d.%d'%tuple(map(ord,list(tem.data.dst)))
+            self.tree.AppendItem(childId2, u"源IP地址: " + src_ip)
+            self.tree.AppendItem(childId2, u"目的IP地址: " + dist_ip)
+                
+        childId3 = self.tree.AppendItem(self.root, u"传输层数据")
+        if tem.data.data.__class__.__name__ == 'TCP' or tem.data.data.__class__.__name__ == 'UDP':
+            self.tree.AppendItem(childId3, u"源端口" + `tem.data.data.sport`)
+            self.tree.AppendItem(childId3, u"目的端口" + `tem.data.data.dport`)
         pass
     def drawList(self,panel): #创建主监视列表
 
@@ -445,10 +467,11 @@ def thread_print(global_queue, frame):
         return
 
 
-def readFromPcap(global_queue, name = None):
+def readFromPcap(global_queue, name = None, filter = None):
     # global global_queue, mutex, isStop
     pc=pcap.pcap(name = name, immediate = True)
-    # pc.setfilter()
+    if filter != None:
+        pc.setfilter(filter)
     for ptime,pdata in pc:
         # if isStop:
         #     return
